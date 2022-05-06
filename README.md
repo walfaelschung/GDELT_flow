@@ -2,7 +2,7 @@
 GDELT data collection and processing
 
 ## Discaimer
-This documents contains supplementary material to the manuscript "From event data to protest events: Lifting the veil on the use of big data news repositories in protest event analysis". It lays out a step-by-step guideline of data collection, processing, and analysis as conducted by the researchers. Where possible, we share snippets of code to be amended and re-used by researchers and other interested parties for their own purposes and projects. As the entire workflow contains important steps that involve "manual" labelling of data and crucial decisions, this document is explictly not meant as a script to be uncritically run, but as documentation of our approach to GDELT-data, which unveils some of the otherwise invisible steps and decisions we took, to aid and inspire others in their own projects. Please note that all Python and R code was written by social scientists, not programmers, so feel free to improve code efficiency and parsimony.
+This documents contains supplementary material to the manuscript "From event data to protest events: Lifting the veil on the use of big data news repositories in protest event analysis". It lays out a step-by-step guideline of data collection, processing, and analysis as conducted by the researchers. Where possible, we share snippets of code to be amended and re-used by researchers and other interested parties for their own purposes and projects. As the entire workflow contains important steps that involve "manual" labelling of data and crucial decisions, this document is explictly not meant as a script to be uncritically run, but as documentation of our approach to GDELT-data, which unveils some of the otherwise invisible steps and decisions we took, to aid and inspire others in their own projects. The steps taken do not necessarily represent the exact order of our project, but are assembled in the order that we deemed most practical after evaluating our own approach. Please note that all Python and R code was written by social scientists, not programmers, so feel free to improve code efficiency and parsimony.
 
 ----------------
 
@@ -208,3 +208,21 @@ The resulting mentions dataframe should look something like this:
 
 **At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labor intense, or otherwise unfeasible.
 Therefore, we decided to filter the Events data by the Number of Articles reporting on a given event (the reasoning being that the more reports on an event exist, the likelihood of a false positve entry in the data is reduced. The mentions data can accordingly be filtered to mentions of remaining events and further filtered by the confidence score, to reduce false positive mentions. While our project (link) uses specific thresholds, we urge researchers to explore meaningful values depending on their own project**
+
+-------------------------------
+
+## Step 3 - Retrieval of article texts
+
+-------------------------------
+
+## Step 4 - Translation of non-English texts
+
+----------------------------------
+
+## Step 5 - Manually attach a "validation" label to a sample
+
+-----------------------------------
+
+## Step 6 - Train and apply a machine learning (ML) classifier
+
+-----------------------
