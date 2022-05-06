@@ -203,3 +203,8 @@ The resulting mentions dataframe should look something like this:
 
 ![grafik](https://user-images.githubusercontent.com/34031060/167127594-2de921cb-660d-4169-93f7-30a38ff8e1f2.png)
 
+**The results after Step 2 are two datasets: One with Events as the ubservation and one with the Mentions as units of observation.**
+**Note that the Mentions dataframe contains a confidence-variable that measures (in steps of 10) how certain GDELT is that a given event is truly mentioned in the story**
+
+**At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labor intense, or otherwise unfeasible.
+Therefore, we decided to filter the Events data by the Number of Articles reporting on a given event (the reasoning being that the more reports on an event exist, the likelihood of a false positve entry in the data is reduced. The mentions data can accordingly be filtered to mentions of remaining events and further filtered by the confidence score, to reduce false positive mentions. While our project (link) uses specific thresholds, we urge researchers to explore meaningful values depending on their own project**
