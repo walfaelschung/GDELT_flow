@@ -32,9 +32,9 @@ This is a list of the Event-Record collected in 15-minute intervals and looks li
 
 Next, we define the countries we are interested in. These are later used to filter the "ActionGeo_CountryCode" variable, which contains info on the country in which the Event took place. 
 
-**Note:** GDELT claims to use FIPS country-codes (https://en.wikipedia.org/wiki/List_of_FIPS_country_codes), but makes a mistake in the case the Denmark (official FIPS-code: DA, GDELT code: DK). This migh apply to other countries as well, so make sure to double-check
+**Note:** GDELT claims to use FIPS country-codes (https://en.wikipedia.org/wiki/List_of_FIPS_country_codes), which differ from ISO-codes. Make sure to double-check
 
-    fipscodes = ['DK','GM','HU','IT','RO','UK']
+    fipscodes = ['DA','GM','HU','IT','RO','UK']
 
 We also define the variables we are interested an create two empty dataframes that will be filled in the next steps: results_df saves all events, protest_df will be used to select only protest events.
 
@@ -130,6 +130,76 @@ We pickle the results and additionally write out to (tab-separated) csv:
     pickle.dump(finished_files,open('finished_files.p','wb'))
     pickle.dump(file_errors,open('file_errors.p','wb'))
 
+
+### Step 1.1
+**Note:** The above steps collect data for Events collected from English-language sources. One of GDELT's strenghts lies in also collecting (and translating) news in different languages. To obtain event data from this "translingual" dataset, the above steps must be repeated with the following data
+
+        master = pd.read_csv("http://data.gdeltproject.org/gdeltv2/masterfilelist-translation.txt", sep=" ", header=None)
+        
+ Results can be merged and checked for duplicates.
+ 
 ---------------------------
 
-## Step 2 
+## Step 2 - Enrich Event Data with Mentions Data
+The high number of false positives in the Event dataset makes a critical inspection necessary - therefore, we want to collect as much information on Events as possible. 
+GDELT's coding is based on monitoring of many news sources. However, the Event dataset contains only the url of a single story. To enrich this with all information that GDELT used, we 'enrich' the Event Data with all Mentions (i.e. story urls) that report on an Event. This allows us to assess multiple sources when identifying false positives. In addition, having multiple sources per event is advantageous for studies reaching further back in time: the risk of missing data due to broken urls can thus be reduced.
+
+The following Python code-snippet makes use of the results from Steps 1 and 1.1. (results dataframe)
+
+First, we obtain a list of zip-files that contain the Mentions dataset
+
+        master = pd.read_csv("http://data.gdeltproject.org/gdeltv2/masterfilelist.txt", sep=" ", header=None)
+        master = master[master[2].str.contains('mentions.CSV', na=False)]
+        urls = list(master[2])
+        del(master)
+        master = pd.read_csv("http://data.gdeltproject.org/gdeltv2/masterfilelist-translation.txt", sep=" ", header=None)
+        master = master[master[2].str.contains('mentions.CSV', na=False)]
+        urls = urls + list(master[2])
+        del(master)
+        len(urls) != len(set(urls)) # two dupes in the 490k files
+        len(set(urls))
+        urls = list(set(urls))
+
+Next, we query each of those zip-files for those entries which mention one of the GlobalEventID in our Event Data. Results are stored in an empty pandas dataframe labelled mentions_df:
+
+    colnames = ['GlobalEventID', 'EventTimeDate','MentionTimeDate','MentionType','MentionSourceName',
+                'MentionIdentifier','SentenceID','Actor1CharOffset','Actor2CharOffset',
+                'ActionCharOffset','InRawText','Confidence',
+                'MentionDocLen','MentionDocTone','MentionDocTranslationInfo',
+                'Extras']
+    mentions_df = pd.DataFrame(columns=colnames)
+    COUNT = 0
+    for a in urls:
+
+        print('Handling file '+str(COUNT)+' of '+str(len(urls)))
+        COUNT = COUNT+1
+        obj = requests.get(a).content
+        try:
+            zf = zipfile.ZipFile(BytesIO(obj), 'r')
+            filename = zf.namelist()
+
+            with zf.open(filename[0], 'r') as csvfile:
+                try:
+                    df = pd.read_csv(csvfile, sep="\t", header=None)
+                    df.columns=colnames
+                    df_to_add = df.loc[df.GlobalEventID.isin(results_df.GlobalEventID)]
+                    mentions_df = mentions_df.append(df_to_add)
+                except EmptyDataError:
+                    print('File was empty, moving on...')
+                    file_errors.append(a)
+
+        except BadZipFile:
+            file_errors.append(a)
+            print('Could not open zip file. Moving on...')
+        finished_files.append(a)
+
+We pickle the resulting dataframe, a list of finished files as well as possible errors for later reference:
+
+    pickle.dump(mentions_df,open('mentions_df.p','wb'))
+    pickle.dump(finished_files,open('finished_files_mentions.p','wb'))
+    pickle.dump(file_errors,open('file_errors_mentions.p','wb'))
+
+The resulting mentions dataframe should look something like this:
+
+![grafik](https://user-images.githubusercontent.com/34031060/167127594-2de921cb-660d-4169-93f7-30a38ff8e1f2.png)
+
