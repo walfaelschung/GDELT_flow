@@ -1,19 +1,19 @@
 # Insert smart title here
 GDELT data collection and processing
 
-## Discaimer
-This documents contains supplementary material to the manuscript "From event data to protest events: Lifting the veil on the use of big data news repositories in protest event analysis". It lays out a step-by-step guideline of data collection, processing, and analysis as conducted by the researchers. Where possible, we share snippets of code to be amended and re-used by researchers and other interested parties for their own purposes and projects. As the entire workflow contains important steps that involve "manual" labelling of data and crucial decisions, this document is explictly not meant as a script to be uncritically run, but as documentation of our approach to GDELT-data, which unveils some of the otherwise invisible steps and decisions we took, to aid and inspire others in their own projects. The steps taken do not necessarily represent the exact order of our project, but are assembled in the order that we deemed most practical after evaluating our own approach. Please note that all Python and R code was written by social scientists, not programmers, so feel free to improve code efficiency and parsimony.
+## Disclaimer
+This document contains supplementary material to the manuscript "From event data to protest events: Lifting the veil on the use of big data news repositories in protest event analysis". It lays out a step-by-step guideline of data collection, processing, and analysis as conducted by the researchers. Where possible, we share snippets of code to be amended and re-used by researchers and other interested parties for their own purposes and projects. As the entire workflow contains important steps that involve "manual" labelling of data and crucial decisions, this document is explicitly not meant as a script to be uncritically run, but as documentation of our approach to GDELT-data, which unveils some of the otherwise invisible steps and decisions we took, to aid and inspire others in their own projects. The steps taken do not necessarily represent the exact order of our project, but are assembled in the order that we deemed most practical after evaluating our own approach. Please note that all Python and R code was written by social scientists, not programmers, so feel free to improve code efficiency and parsimony.
 
 ----------------
 
 ## Step I - Event-Data Collection from Master-CSV
-Since GDELT's Event Exporter (https://analysis.gdeltproject.org/module-event-exporter.html), which promises easy access to the Events Data is defunct, it is possible to use SQL-queries GDELT via Google BigQUery (not free). Free, easy but limited access to GDELT Event Data is also provided through ICore (https://icore.mnl.ucsb.edu/event/). For our purpose, there is not alternative to querying the raw comme-separated-value (CSV) files from GDELT's Master List with Python. 
+Since GDELT's Event Exporter (https://analysis.gdeltproject.org/module-event-exporter.html), which promises easy access to the Events Data is defunct, it is possible to use SQL-queries GDELT via Google BigQUery (not free). Free, easy but limited access to GDELT Event Data is also provided through ICore (https://icore.mnl.ucsb.edu/event/). For our purpose, there is not alternative to querying the raw comma-separated-value (CSV) files from GDELT's Master List with Python. 
 
-We use the follwing packages:
+We use the following packages:
 
     from pandas.errors import EmptyDataError
     import pandas as pd
-    import zipfile
+    import zip file
     from zipfile import BadZipFile
     import requests
     from io import BytesIO
@@ -30,13 +30,13 @@ This is a list of the Event-Record collected in 15-minute intervals and looks li
     ![grafik](https://user-images.githubusercontent.com/34031060/167093068-55281a07-3049-47ba-8362-ff51f5cb42e6.png)
 
 
-Next, we define the countries we are interested in. These are later used to filter the "ActionGeo_CountryCode" variable, which contains info on the country in which the Event took place. 
+Next, we define the countries we are interested in. These are later used to filter the "ActionGeo_CountryCode" variable, which contains info on the country in which the event took place. 
 
 **Note:** GDELT claims to use FIPS country-codes (https://en.wikipedia.org/wiki/List_of_FIPS_country_codes), which differ from ISO-codes. Make sure to double-check
 
     fipscodes = ['DA','GM','HU','IT','RO','UK']
 
-We also define the variables we are interested an create two empty dataframes that will be filled in the next steps: results_df saves all events, protest_df will be used to select only protest events.
+We also define the variables we are interested in and create two empty dataframes that will be filled in the next steps: results_df saves all events, protest_df will be used to select only protest events.
 
     colnames = ['GlobalEventID', 'Day','MonthYear','Year','FractionDate',
                 'Actor1Code','Actor1Name','Actor1CountryCode','Actor1KnownGroupCode',
@@ -67,8 +67,8 @@ We archive finished files and errors in two lists:
     finished_files =[]
     file_errors = []
 
-The following script loops through the urls and extracts all protest events in all countries, and filters these in a second step to only countries defined in the fipscodes-list. As this might take a long time, we output the passed time at every 10,000 events and save the collected results in regular intervals.
-We need to unpack the zip-files to access the csv within. Note by "EventBaseCode" == 14, which contain protest events as defined in GDELTS CAMEO classification (http://data.gdeltproject.org/documentation/CAMEO.Manual.1.1b3.pdf).
+The following script loops through the URLs and extracts all protest events in all countries, and filters these in a second step to only countries defined in the fipscodes-list. As this might take a long time, we output the passed time at every 10,000 events and save the collected results in regular intervals.
+We need to unpack the zip files to access the CSV within. Note by "EventBaseCode" == 14, which contain protest events as defined in GDELTS CAMEO classification (http://data.gdeltproject.org/documentation/CAMEO.Manual.1.1b3.pdf).
 
     COUNT = 0
     start_time = time.time()
@@ -122,7 +122,7 @@ We might want to check for duplicate entries, set a date range that we are inter
  
 
 ### Step 1.1
-**Note:** The above steps collect data for Events collected from English-language sources. One of GDELT's strenghts lies in also collecting (and translating) news in different languages. To obtain event data from this "translingual" dataset, the above steps must be repeated with the following data
+**Note:** The above steps collect data for Events collected from English-language sources. One of GDELT's strengths lies in also collecting (and translating) news in different languages. To obtain event data from this "translingual" dataset, the above steps must be repeated with the following data
 
         master = pd.read_csv("http://data.gdeltproject.org/gdeltv2/masterfilelist-translation.txt", sep=" ", header=None)
         
@@ -132,11 +132,11 @@ We might want to check for duplicate entries, set a date range that we are inter
 
 ## Step 2 - Enrich Event Data with Mentions Data
 The high number of false positives in the Event dataset makes a critical inspection necessary - therefore, we want to collect as much information on Events as possible. 
-GDELT's coding is based on monitoring of many news sources. However, the Event dataset contains only the url of a single story. To enrich this with all information that GDELT used, we 'enrich' the Event Data with all Mentions (i.e. story urls) that report on an Event. This allows us to assess multiple sources when identifying false positives. In addition, having multiple sources per event is advantageous for studies reaching further back in time: the risk of missing data due to broken urls can thus be reduced.
+GDELT's coding is based on monitoring of many news sources. However, the Event dataset contains only the URL of a single story. To enrich this with all information that GDELT used, we 'enrich' the Event Data with all Mentions (i.e. story URLs) that report on an Event. This allows us to assess multiple sources when identifying false positives. In addition, having multiple sources per event is advantageous for studies reaching further back in time: the risk of missing data due to broken URLs can thus be reduced.
 
 The following Python code-snippet makes use of the results from Steps 1 and 1.1. (results dataframe)
 
-First, we obtain a list of zip-files that contain the Mentions dataset
+First, we obtain a list of zip files that contain the Mentions dataset
 
         master = pd.read_csv("http://data.gdeltproject.org/gdeltv2/masterfilelist.txt", sep=" ", header=None)
         master = master[master[2].str.contains('mentions.CSV', na=False)]
@@ -184,23 +184,23 @@ Next, we query each of those zip-files for those entries which mention one of th
         finished_files.append(a)
 
 
-The resulting mentions dataframe should look something like this:
+The resulting mentions data frame should look something like this:
 
 ![grafik](https://user-images.githubusercontent.com/34031060/167127594-2de921cb-660d-4169-93f7-30a38ff8e1f2.png)
 
 **The results after Step 2 are two datasets: One with Events as the unit of observation and one with the Mentions as units of observation.**
-**Note that the Mentions dataframe contains a confidence-variable that measures (in steps of 10) how certain GDELT is that a given event is truly mentioned in the story**
+**Note that the Mentions data frame contains a confidence-variable that measures (in steps of 10) how certain GDELT is that a given event is truly mentioned in the story**
 
-**At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labor intense, or otherwise unfeasible.
-Therefore, we decided to filter the Events data by the Number of Articles reporting on a given event (the reasoning being that the more reports on an event exist, the likelihood of a false positve entry in the data is reduced. The mentions data can accordingly be filtered to mentions of remaining events and further filtered by the confidence score, to reduce false positive mentions. While our project (link) uses specific thresholds, we urge researchers to explore meaningful values depending on their own project**
+**At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labour-intense, or otherwise unfeasible.
+Therefore, we decided to filter the Events data by the Number of Articles reporting on a given event (the reasoning being that the more reports on an event exist, the likelihood of a false positive entry in the data is reduced. The mentions data can accordingly be filtered to mentions of remaining events and further filtered by the confidence score, to reduce false-positive mentions. While our project (link) uses specific thresholds, we urge researchers to explore meaningful values depending on their own project**
 
 -------------------------------
 
 ## Step 3 - Retrieval of article texts and translate non-English texts to English
 
-This part is extremely resource-intense, so consider a batch-wise approach or sourcing the task out so machines with high computational resources. Depending on your own context and project-scope, it might be worth exploring different translation models. 
-In general, this part requires a dataframe that contains the GlobalEventID variable as well as the story-url (called SOURCEURL in the Event-Data or MentionIdentifier in the Mentions-Data). This data should ideally be split into English and non-English resources, by separating the Events-Data in the translist-Masterfiles from the English-language Masterfiles and by using the "MentionDocTranslationInfo" variable in the Mentions Data (empty for English documents. For the collection of article texts, make sure to follow rules and respect the robots.txt. The code-snippet below is one of several approaches we tested, using the urllib, reppy, and newspaper packages in Python. R users might prefer polite to query robots.txt and rvest to collect data. Note that errors stemming from robots.txt disallowing access to an article shoudl be double-checked. For many domains, we found the results that were retrieved to be incorrect.
-The Code-Snippets below illustrate how this process can be done. As it's highly dependent on project-needs and resources, consider adjusting the parameters to your needs. Note that the translation-part is of course not required for English-language documents. For each document that requires translation, the MentionDocTranslationInfo variable should be parsed to identify the source language (in the code example, we suppose three lists of equal length and order: one containing the Event-ID, one containing the story url, and one containing that stories language as obtailed from the Mentions-table). **Note:** GDELT stores language codes in ISO639-2 format, Opus-MT uses ISO 639-1 https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes. In our case, we compared the codes in our dataset and changed the source_language variable where applicable.
+This part is extremely resource-intense, so consider a batch-wise approach or sourcing the task out so machines with high computational resources. Depending on your own context and project scope, it might be worth exploring different translation models. 
+In general, this part requires a data frame that contains the GlobalEventID variable as well as the story-URL (called SOURCEURL in the Event-Data or MentionIdentifier in the Mentions-Data). This data should ideally be split into English and non-English resources, by separating the Events-Data in the translist-Master files from the English-language Master files and by using the "MentionDocTranslationInfo" variable in the Mentions Data (empty for English documents. For the collection of article texts, make sure to follow rules and respect the robots.txt. The code snippet below is one of several approaches we tested, using the urllib, reppy, and newspaper packages in Python. R users might prefer polite to query robots.txt and rvest to collect data. Note that errors stemming from robots.txt disallowing access to an article should be double-checked. For many domains, we found the results that were retrieved to be incorrect.
+The Code-Snippets below illustrate how this process can be done. As it's highly dependent on project needs and resources, consider adjusting the parameters to your needs. Note that the translation part is of course not required for English-language documents. For each document that requires translation, the MentionDocTranslationInfo variable should be parsed to identify the source language (in the code example, we suppose three lists of equal length and order: one containing the Event-ID, one containing the story URL, and one containing that stories language as obtained from the Mentions-table). **Note:** GDELT stores language codes in ISO639-2 format, Opus-MT uses ISO 639-1 https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes. In our case, we compared the codes in our dataset and changed the source_language variable where applicable.
 Depending on your data and infrastructure, the code may raise different errors. Here, we just handle some that appeared in our application.
 
         from urllib.parse import urlparse
@@ -244,8 +244,8 @@ Depending on your data and infrastructure, the code may raise different errors. 
                 elist.append(a)
 
 
- The results may be processed as needed. We recommend cleaning the tranlated and untranslated texts for stopwords, numbers, double-whitespaces, etc. depending the research interest (see a great introduction here: https://machinelearningmastery.com/clean-text-machine-learning-python/).
-In our case, we were interested only on the appearance of certain keywords within an article, that indicate protest-events. 
+ The results may be processed as needed. We recommend cleaning the translated and untranslated texts for stopwords, numbers, double-whitespaces, etc., depending on the research interest (see a great introduction here: https://machinelearningmastery.com/clean-text-machine-learning-python/).
+In our case, we were interested only in the appearance of certain keywords within an article, that indicate protest events. 
  
 ----------------------------------
 
@@ -262,7 +262,7 @@ We can implement this in the resultlist from Step 4 like this:
         matches = [word for word in prodict_eng if  word in re.split('\s+', text.lower())]
 
 This returns a simple list of all terms from the dictionary that were also found in the text. 
-Based in this matching, we created several variables on **Event**-level:
+Based on this matching, we created several variables on **Event**-level:
 1) A "naive" matching variable: True if any dictionary term was found in any story on an event, false otherwise.
 2) A majority matching variable: True if a majority of stories on an event contained one of the dictionaries terms.
 3) A three-way factorial variable (True, False, 99) that determined whether the majority of stories contained one of dictionary terms, did not contain the terms, or did not contain enough info (due to text that are too short of missing)
