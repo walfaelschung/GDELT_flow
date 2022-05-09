@@ -120,16 +120,6 @@ We might want to check for duplicate entries, set a date range that we are inter
     len(results)
         
  
-               
-We pickle the results and additionally write out to (tab-separated) csv:
-
-    result_df.to_csv('results.csv',index=False,sep='\t')   
-    protest_df.to_csv('results_all_protest.csv',index=False,sep='\t')
-    pickle.dump(result_df,open('results.p','wb'))
-    pickle.dump(protest_df,open('results_all_protest.p','wb'))
-    pickle.dump(finished_files,open('finished_files.p','wb'))
-    pickle.dump(file_errors,open('file_errors.p','wb'))
-
 
 ### Step 1.1
 **Note:** The above steps collect data for Events collected from English-language sources. One of GDELT's strenghts lies in also collecting (and translating) news in different languages. To obtain event data from this "translingual" dataset, the above steps must be repeated with the following data
@@ -193,17 +183,12 @@ Next, we query each of those zip-files for those entries which mention one of th
             print('Could not open zip file. Moving on...')
         finished_files.append(a)
 
-We pickle the resulting dataframe, a list of finished files as well as possible errors for later reference:
-
-    pickle.dump(mentions_df,open('mentions_df.p','wb'))
-    pickle.dump(finished_files,open('finished_files_mentions.p','wb'))
-    pickle.dump(file_errors,open('file_errors_mentions.p','wb'))
 
 The resulting mentions dataframe should look something like this:
 
 ![grafik](https://user-images.githubusercontent.com/34031060/167127594-2de921cb-660d-4169-93f7-30a38ff8e1f2.png)
 
-**The results after Step 2 are two datasets: One with Events as the ubservation and one with the Mentions as units of observation.**
+**The results after Step 2 are two datasets: One with Events as the unit of observation and one with the Mentions as units of observation.**
 **Note that the Mentions dataframe contains a confidence-variable that measures (in steps of 10) how certain GDELT is that a given event is truly mentioned in the story**
 
 **At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labor intense, or otherwise unfeasible.
@@ -211,15 +196,77 @@ Therefore, we decided to filter the Events data by the Number of Articles report
 
 -------------------------------
 
-## Step 3 - Retrieval of article texts
+## Step 3 - Retrieval of article texts and translate non-English texts to English
 
--------------------------------
+This part is extremely resource-intense, so consider a batch-wise approach or sourcing the task out so machines with high computational resources. Depending on your own context and project-scope, it might be worth exploring different translation models. 
+In general, this part requires a dataframe that contains the GlobalEventID variable as well as the story-url (called SOURCEURL in the Event-Data or MentionIdentifier in the Mentions-Data). This data should ideally be split into English and non-English resources, by separating the Events-Data in the translist-Masterfiles from the English-language Masterfiles and by using the "MentionDocTranslationInfo" variable in the Mentions Data (empty for English documents. For the collection of article texts, make sure to follow rules and respect the robots.txt. The code-snippet below is one of several approaches we tested, using the urllib, reppy, and newspaper packages in Python. R users might prefer polite to query robots.txt and rvest to collect data. Note that errors stemming from robots.txt disallowing access to an article shoudl be double-checked. For many domains, we found the results that were retrieved to be incorrect.
+The Code-Snippets below illustrate how this process can be done. As it's highly dependent on project-needs and resources, consider adjusting the parameters to your needs. Note that the translation-part is of course not required for English-language documents. For each document that requires translation, the MentionDocTranslationInfo variable should be parsed to identify the source language (in the code example, we suppose three lists of equal length and order: one containing the Event-ID, one containing the story url, and one containing that stories language as obtailed from the Mentions-table). **Note:** GDELT stores language codes in ISO639-2 format, Opus-MT uses ISO 639-1 https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes. In our case, we compared the codes in our dataset and changed the source_language variable where applicable.
+Depending on your data and infrastructure, the code may raise different errors. Here, we just handle some that appeared in our application.
 
-## Step 4 - Translation of non-English texts
+        from urllib.parse import urlparse
+        from reppy.robots import Robots
+        import newspaper
+        from newspaper import ArticleException
+        from easynmt import EasyNMT
 
+        model = EasyNMT('opus-mt', max_loaded_models=40)
+        robotallow = []
+        rotslist = []
+        resultslist = []
+        elist = []
+
+
+        for a in urllist:
+            COUNT = COUNT + 1
+            dom = 'http://'+urlparse(a).netloc+'/robots.txt'
+            rotslist.append(dom)
+            try:
+
+                robots = Robots.fetch(dom)             
+                if robots.allowed(a,'*') == True:
+                    robotallow.append(True)
+                    url_i = newspaper.Article(a)
+                    try:
+                        url_i.download()
+                        url_i.parse()
+                        try:
+                            t_text = model.translate(url_i.text, source_lang = source_language[COUNT], target_lang = 'en')
+                        except:
+                            t_text = 'not translated'
+                        resultslist.append(t_text)
+                    except ArticleException:
+                        resultslist.append('er')
+
+                else:
+                    robotallow.append(False)
+                    resultslist.append('NA')
+            except Exception:
+                elist.append(a)
+
+
+ The results may be processed as needed. We recommend cleaning the tranlated and untranslated texts for stopwords, numbers, double-whitespaces, etc. depending the research interest (see a great introduction here: https://machinelearningmastery.com/clean-text-machine-learning-python/).
+In our case, we were interested only on the appearance of certain keywords within an article, that indicate protest-events. 
+ 
 ----------------------------------
 
-## Step 5 - Manually attach a "validation" label to a sample
+## Step 5 - Dictionary-based protest identification in the article text 
+
+The variables we used for Machine Learning are based on the intersection of article texts with a dictionary of protest-related terms.
+If we define the dictionary like this:
+
+                prodict_eng = ['demonstration', 'protest', 'rally', 'march', 'parade', 'riot',  'strike', 'boycott' , 'sit-in', 'crowd', 'mass', 'picket', 'picket line', 'blockade', 'mob', 'flash mob', 'revolution', 'rebellion',  'demonstrations', 'protests', 'rallies', 'marches', 'parades', 'riots',  'strikes', 'boycotts' , 'sit-ins', 'crowds', 'masses', 'pickets', 'picket lines', 'blockades', 'mobs', 'flash mobs', 'revolutions', 'rebellions','clash','demonstrate','campaign','protester','protesters']
+
+We can implement this in the resultlist from Step 4 like this:
+
+    for text in resultslist:
+        matches = [word for word in prodict_eng if  word in re.split('\s+', text.lower())]
+
+This returns a simple list of all terms from the dictionary that were also found in the text. 
+Based in this matching, we created several variables on **Event**-level:
+1) A "naive" matching variable: True if any dictionary term was found in any story on an event, false otherwise.
+2) A majority matching variable: True if a majority of stories on an event contained one of the dictionaries terms.
+3) A three-way factorial variable (True, False, 99) that determined whether the majority of stories contained one of dictionary terms, did not contain the terms, or did not contain enough info (due to text that are too short of missing)
+
 
 -----------------------------------
 
