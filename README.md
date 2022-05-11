@@ -191,10 +191,22 @@ The resulting mentions data frame should look something like this:
 **The results after Step 2 are two datasets: One with Events as the unit of observation and one with the Mentions as units of observation.**
 **Note that the Mentions data frame contains a confidence-variable that measures (in steps of 10) how certain GDELT is that a given event is truly mentioned in the story**
 
+See the distribution of confidence scores in our data here:
+
+![grafik](https://user-images.githubusercontent.com/34031060/167844652-b31c140f-d81d-4616-b411-2387fc7f1f73.png)
+
+
 **At this point, depending on a project's scope, the dataset can be huge and the following steps become costly, labour-intense, or otherwise unfeasible.
 Therefore, we decided to filter the Events data by the Number of Articles reporting on a given event (the reasoning being that the more reports on an event exist, the likelihood of a false positive entry in the data is reduced. The mentions data can accordingly be filtered to mentions of remaining events and further filtered by the confidence score, to reduce false-positive mentions. While our project (link) uses specific thresholds, we urge researchers to explore meaningful values depending on their own project**
 
 -------------------------------
+
+## Interlude: Human Coding and insufficient Machine Learning classification
+
+this section should briefly explain the human coding of a sample of n=1,000, how we detected a rate of .55 false positives and how we ran a classifier that failed to identify these.
+Initial classifier results: linear SVM: Precision: .58, Recall: .57, Poly SVM: .63 /.64, KNN: .61 / .61, NB: .59 / .73
+
+--------------------------------
 
 ## Step 3 - Retrieval of article texts and translate non-English texts to English
 
@@ -265,11 +277,80 @@ This returns a simple list of all terms from the dictionary that were also found
 Based on this matching, we created several variables on **Event**-level:
 1) A "naive" matching variable: True if any dictionary term was found in any story on an event, false otherwise.
 2) A majority matching variable: True if a majority of stories on an event contained one of the dictionaries terms.
-3) A three-way factorial variable (True, False, 99) that determined whether the majority of stories contained one of dictionary terms, did not contain the terms, or did not contain enough info (due to text that are too short of missing)
+3) A three-way factorial variable (True, False, No_Info) that determined whether the majority of stories contained one of dictionary terms, did not contain the terms, or did not contain enough info (due to text that are too short of missing)
 
 
 -----------------------------------
 
-## Step 6 - Train and apply a machine learning (ML) classifier
+## Step 6 - Train and apply a Machine Learning (ML) classifier
 
+As we imposed additional restrictions on the number of stories per event and the confidence of mentions, applying the same restrictions to the sample coded by humans reduced n from 1,000 to 930. With a 70/30 split, we used this sample as a training and test set for to evaluate different Machine Learning classifiers which used the variables created in step 5 as additional predictors. 
+
+We ran our ML-models in R using the following packages
+
+        library(tidyverse)
+        library(caret)
+        library(MLeval)
+
+To train the classifier, we begin with a dataframe (df) that contains the original GDELT Event variables (see Step 1), the results of our story retrieval and dictionary search (see Step 5), as well as the result of human validation in the form of a binary variable (1 = Protest Event (PE), 0 = No PE). We propose to identify the GDELT variables that are most meaningful for each project and that contain the least missing values. For our purposes, we subset the data to:
+
+    subset <- 
+        df %>%
+            select(GlobalEventID,Protest_event, MonthYear, IsRootEvent,GoldsteinScale,AvgTone,fulltext_factor_result) 
+
+
+Which looks something like this: 
+        
+        glimpse(subset)
+        
+        ## Rows: 930
+        ## Columns: 7
+        ## $ GlobalEventID                    <chr> "410695965", "412532378", "412644348"~
+        ## $ Protest_event                    <fct> 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0~
+        ## $ MonthYear                        <dbl> 201502, 201502, 201502, 201503, 20150~
+        ## $ IsRootEvent                      <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1~
+        ## $ GoldsteinScale                   <dbl> -7.5, -6.5, -6.5, -6.5, -6.5, -6.5, -~
+        ## $ AvgTone                          <dbl> -7.9207921, 2.8277635, -0.9779951, -0~
+        ## $ fulltext_factor_result           <chr> "NO", "YES", "NO", "NO", "NO", "YES",~
+      
+Depending on the data used, pre-processing is advisable. We converted character variables as well as RootEvent and MonthYear to factor, while the caret package allows to center and rescale numeric variables. Note that the EventID must of course be excluded from the classifier as it's unique to each observation.
+Next, we split the data into training and test set:
+
+    set.seed(42)
+    train_id <- createDataPartition(training_subset_use$Protest_event, list = F, p = .7)
+    data_train <- training_subset_use %>% slice(train_id)
+    data_test <- training_subset_use %>% slice(-train_id)
+    prep <- data_train %>% select(-Protest_event) %>%
+            preProcess(method = c("center", "scale"))
+    data_train_preped <- predict(prep, data_train)
+    data_test_preped <- predict(prep, data_test)
+    
+The caret package (https://topepo.github.io/caret/index.html) offers excellent documentation of the various functions for data processing, model training and tuning. For us, a Support Vector Machine with linear Kernel provided the best recall values with acceptable precision.
+    
+        formula_model <- formula("Protest_event ~ IsRootEvent + MonthYear + GoldsteinScale +
+                         AvgTone + fulltext_factor_result")                     
+        train_params <- trainControl(method = "cv", summaryFunction = twoClassSummary,classProbs = T,savePredictions = T)
+        model_svm <- train(formula_model, data = data_train_preped, method = "svmLinear",  trControl = train_params, metric="Sens")
+        pred_test_svm <- predict(model_svm, newdata = data_test_preped)
+        confusionMatrix(pred_test_svm, data_test_preped$Protest_event, positive = "PE", mode = "prec_recall")
+ 
+ Which produced the following Confusion Matrix:
+ 
+ ![grafik](https://user-images.githubusercontent.com/34031060/167841470-899da0ae-3ee8-4efb-b8de-b1111bd2aee2.png)
+
+       
+In other words, without knowing the results of human coding (i.e. ground truth), the classifier identified 129 protest events correctly, failed to identify 27 protest events as such, correctly classified 77 events as not protest events and identified 45 events as protest events that were actually not protest events. While our final step of human validation should sort out these 45 cases, the principal aim is to keep the number of actual protest events that are mislabelled by classifier as low as possible, as humans will later only inspect the observations labelled "PE" by the classifier. This justifies an emphasis on recall over precision - however, for many other applications, researchers might lay a different focus, so make sure to select your classifier and parameters accordingly. In our case, the best results we achieved with a k-nearest neighbours classifier reached precision .69 and recall .71, Naive Bayes .72 and .74.
+ 
 -----------------------
+
+
+## Step 7 - Human Validation of Protest labels.
+
+Once the classifier was run on the entire dataset, we obtained 91,721 Protest Event and 54,756 No Protest Event Labels with the abovementioned criteria for data selection. Since this is still too much for us to handle in human coding, we shifted the filter for the number of stories reporting on an event from the 60th to the 95th percentile, reasoning that the most impactful events might be the ones who received most attention in the form of news stories. This resulted in a reduction to 6,190 PE and  3,863 No_PE. Human coders inspected the 6,190 events according the the coding rules outlined above. 
+
+![grafik](https://user-images.githubusercontent.com/34031060/167840841-87599776-5fdf-401e-bcd0-95047ba57026.png)
+
+![grafik](https://user-images.githubusercontent.com/34031060/167841180-7778c4be-10d4-4ce1-85bb-a03874f7885b.png)
+
+
+The results indicate that 3,686 events were labelled true positives after human inspection (around 60 per cent). In (only) 229 cases, none of the urls to an event's stories was working (even with the help of the Internet Archive's Wayback machine) or could not be translated to English. This indicates that mislabelling by GDELT seems to be a far more common source of error than missing information.
