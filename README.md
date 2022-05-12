@@ -67,8 +67,8 @@ We archive finished files and errors in two lists:
     finished_files =[]
     file_errors = []
 
-The following script loops through the URLs and extracts all protest events in all countries, and filters these in a second step to only countries defined in the fipscodes-list. As this might take a long time, we output the passed time at every 10,000 events and save the collected results in regular intervals.
-We need to unpack the zip files to access the CSV within. Note by "EventBaseCode" == 14, which contain protest events as defined in GDELTS CAMEO classification (http://data.gdeltproject.org/documentation/CAMEO.Manual.1.1b3.pdf).
+The following script loops through the URLs and extracts all protest events in all countries, and filters these in a second step to only countries defined in the fipscodes-list. As this might take a long time, we output the passed time at every 10,000 events and save the collected results at regular intervals.
+We need to unpack the zip files to access the CSV within. Note we filter events by "EventBaseCode" == 14, which contains protest events as defined in GDELTS CAMEO classification (http://data.gdeltproject.org/documentation/CAMEO.Manual.1.1b3.pdf).
 
     COUNT = 0
     start_time = time.time()
