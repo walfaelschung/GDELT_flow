@@ -358,11 +358,11 @@ In other words, without knowing the results of human coding (i.e. ground truth),
 
 ## Step 7 - Human Validation of Protest labels.
 
-Once the classifier was run on the entire dataset, we obtained 91,721 Protest Event and 54,756 No Protest Event Labels with the abovementioned criteria for data selection. Since this is still too much for us to handle in human coding, we shifted the filter for the number of stories reporting on an event from the 60th to the 95th percentile, reasoning that the most impactful events might be the ones who received most attention in the form of news stories. This resulted in a reduction to 6,190 PE and  3,863 No_PE. Human coders inspected the 6,190 events according the the coding rules outlined above. 
+Once the classifier was run on the entire dataset, we obtained 91,721 Protest Event and 54,756 No Protest Event Labels with the abovementioned criteria for data selection. Since this is still too much for us to handle in human coding, we shifted the filter for the number of stories reporting on an event from the 60th to the 95th percentile, reasoning that the most impactful events might be the ones who received most attention in the form of news stories. This resulted in a reduction to 6,190 PE and  3,863 No_PE. Human coders inspected the 6,190 events according the the coding rules outlined above with the following results:
 
-![grafik](https://user-images.githubusercontent.com/34031060/167840841-87599776-5fdf-401e-bcd0-95047ba57026.png)
+![billede](https://user-images.githubusercontent.com/34031060/174605527-6e0fcb00-4dc2-4283-b5eb-d554ed19b8e9.png)
+![billede](https://user-images.githubusercontent.com/34031060/174605726-d9adfa8b-75df-4be2-96a6-20a0b03a146b.png)
 
-![grafik](https://user-images.githubusercontent.com/34031060/167841180-7778c4be-10d4-4ce1-85bb-a03874f7885b.png)
 
 
 The results indicate that 3,564 events were labelled true positives after human inspection (58.5 per cent). In (only) 172 (2.8 per cent) cases, none of the urls to an event's stories was working (even with the help of the Internet Archive's Wayback machine) or could not be translated to English. This indicates that mislabelling by GDELT seems to be a far more common source of error than missing information.
