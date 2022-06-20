@@ -1,4 +1,4 @@
-# Insert smart title here
+# Event Data Validation using GDELT - Supplement 
 GDELT data collection and processing
 
 ## Disclaimer
@@ -203,8 +203,20 @@ Therefore, we decided to filter the Events data by the Number of Articles report
 
 ## Interlude: Human Coding and insufficient Machine Learning classification
 
-this section should briefly explain the human coding of a sample of n=1,000, how we detected a rate of .55 false positives and how we ran a classifier that failed to identify these.
-Initial classifier results: linear SVM: Precision: .58, Recall: .57, Poly SVM: .63 /.64, KNN: .61 / .61, NB: .59 / .73
+As false positive entries are a well-known issue in GDELT datasets, we wanted to learn about the magnitude if this problem and find ways toward a more valid set of protest events. We checked both the original url and all stories from the Mentions dataset to assess, whether an event is a true positive entry. Defining a true positive as an entry that actually reports on a protest event that happened in the country and at the approximate date that GDELT claims it did, lead us to identify only 448 events out of a random sample of 1,000 events. We concluded that taking GDELT data at face value when doing protest event analysis is not acceptable for our purposes. 
+At the same time, it was unfeasible to let humans validate every entry in the dataset. THerefore, we used the random sample of 1,000 events as a test and training set for a Machine Learning classifier, which would ideally be able to identify patterns in GDELT's data that help exlcude false positives.
+
+For that task, we used the sklearn library in Python, and tested several formulae and classification algorithms, none performed suffiencetly. For example, including actors, root_event, quadclass, goldstein_scale,year, average tonality, number of articles and number of sources in the model produced the following results:
+ 
+        from sklearn.naive_bayes import GaussianNB
+        model = GaussianNB()
+        from sklearn import metrics
+        print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+        
+We found and accuracy of 0.6379310344827587
+Logistic regression performed at an accuracy of .69, while support vector machine reached an accuracy of .68.
+
+We decided that the variables included in GDELT did not contain anough information to allow robust classification. We therefore decided to collect additional data from the original news-sources that GDELT analyzed. 
 
 --------------------------------
 
