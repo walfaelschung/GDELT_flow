@@ -365,4 +365,4 @@ Once the classifier was run on the entire dataset, we obtained 91,721 Protest Ev
 ![grafik](https://user-images.githubusercontent.com/34031060/167841180-7778c4be-10d4-4ce1-85bb-a03874f7885b.png)
 
 
-The results indicate that 3,686 events were labelled true positives after human inspection (around 60 per cent). In (only) 229 cases, none of the urls to an event's stories was working (even with the help of the Internet Archive's Wayback machine) or could not be translated to English. This indicates that mislabelling by GDELT seems to be a far more common source of error than missing information.
+The results indicate that 3,564 events were labelled true positives after human inspection (58.5 per cent). In (only) 172 (2.8 per cent) cases, none of the urls to an event's stories was working (even with the help of the Internet Archive's Wayback machine) or could not be translated to English. This indicates that mislabelling by GDELT seems to be a far more common source of error than missing information.
